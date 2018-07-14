@@ -13,7 +13,7 @@ except ImportError:
 
 from chainer import Variable, functions as F
 from chainer.training import extensions
-from model import LinearClassifier, ThreeLayerPerceptron, MultiLayerPerceptron, CNN
+from model import LinearClassifier, ThreeLayerPerceptron, MultiLayerPerceptron, CNN, DrugTargetNetwork
 from pu_loss import PULoss
 from dataset import load_dataset
 
@@ -23,7 +23,7 @@ def process_args():
     parser = argparse.ArgumentParser(
         description='non-negative / unbiased PU learning Chainer implementation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--batchsize', '-b', type=int, default=30000,
+    parser.add_argument('--batchsize', '-b', type=int, default=1,
                         help='Mini batch size')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='Zero-origin GPU ID (negative value indicates CPU)')
@@ -33,21 +33,24 @@ def process_args():
                              "figure1: The setting of Figure1\n"+
                              "exp-mnist: The setting of MNIST experiment in Experiment\n"+
                              "exp-cifar: The setting of CIFAR10 experiment in Experiment")
-    parser.add_argument('--dataset', '-d', default='mnist', type=str, choices=['mnist', 'cifar10'],
+    parser.add_argument('--dataset', '-d', default='drugbank', type=str, choices=['drugbank', 'mnist', 'cifar10'],
                         help='The dataset name')
-    parser.add_argument('--labeled', '-l', default=100, type=int,
+    parser.add_argument('--labeled', '-l', default=15360, type=int,
                         help='# of labeled data')
-    parser.add_argument('--unlabeled', '-u', default=59900, type=int,
+    # unlabeled data size = #drug * #target - known_relationship = 6386 * 4154 - 15360
+    parser.add_argument('--unlabeled', '-u', default=26512084, type=int,
                         help='# of unlabeled data')
-    parser.add_argument('--epoch', '-e', default=100, type=int,
+
+    parser.add_argument('--epoch', '-e', default=6000, type=int,
                         help='# of epochs to learn')
+
     parser.add_argument('--beta', '-B', default=0., type=float,
                         help='Beta parameter of nnPU')
     parser.add_argument('--gamma', '-G', default=1., type=float,
                         help='Gamma parameter of nnPU')
     parser.add_argument('--loss', type=str, default="sigmoid", choices=['logistic', 'sigmoid'],
                         help='The name of a loss function')
-    parser.add_argument('--model', '-m', default='3lp', choices=['linear', '3lp', 'mlp'],
+    parser.add_argument('--model', '-m', default='dtn', choices=['linear', '3lp', 'mlp', 'dtn'],
                         help='The name of a classification model')
     parser.add_argument('--stepsize', '-s', default=1e-3, type=float,
                         help='Stepsize of gradient method')
@@ -57,6 +60,7 @@ def process_args():
     if args.gpu >= 0:
         chainer.cuda.check_cuda_available()
         chainer.cuda.get_device_from_id(args.gpu).use()
+
     if args.preset == "figure1":
         args.labeled = 100
         args.unlabeled = 59900
@@ -95,7 +99,7 @@ def select_loss(loss_name):
 
 def select_model(model_name):
     models = {"linear": LinearClassifier, "3lp": ThreeLayerPerceptron,
-              "mlp": MultiLayerPerceptron, "cnn": CNN}
+              "mlp": MultiLayerPerceptron, "cnn": CNN, 'dtn': DrugTargetNetwork}
     return models[model_name]
 
 
