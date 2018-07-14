@@ -143,13 +143,18 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
         n_n = (Y == negative).sum()
         Xp = X[Y == positive][:n_p]
         Xn = X[Y == negative][:n_n]
-        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32)
-        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32)
-        perm = np.random.permutation(len(Y))
-        X, Y = X[perm], Y[perm]
+        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32) #(10000,1,28,28)
+        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32) # (10000,)
+        perm = np.random.permutation(len(Y)) # (10000,)
+        X, Y = X[perm], Y[perm] # shuffle
         return X, Y
-
+    # dataset consists of (trainX, trainY) and (testX, testY) the following line break them up from the argument
     (_trainX, _trainY), (_testX, _testY) = dataset
+
+    # trainX is of shape (60000, 1, 28, 28);
+    # trainY is of shape (60000,)
+    # testX is of shape (10000, 1, 28, 28)
+    # tesetY is of shape(10000,)
     trainX, trainY, prior = make_PU_dataset_from_binary_dataset(_trainX, _trainY)
     testX, testY = make_PN_dataset_from_binary_dataset(_testX, _testY)
     print("training:{}".format(trainX.shape))
