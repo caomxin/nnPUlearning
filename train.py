@@ -224,7 +224,7 @@ def main():
     # dataset setup
     XYtrain, XYtest, prior = load_dataset(args.dataset, args.labeled, args.unlabeled) # XYtrain is a list of length 60000 and XYtest is a list of length 10000
     dim = XYtrain[0][0].size // len(XYtrain[0][0]) # dim = 784
-    train_iter = chainer.iterators.SerialIterator(XYtrain, args.batchsize)
+    train_iter = chainer.iterators.SerialIterator(XYtrain, args.batchsize) # batchsize=30000
     valid_iter = chainer.iterators.SerialIterator(XYtrain, args.batchsize, repeat=False, shuffle=False)
     test_iter = chainer.iterators.SerialIterator(XYtest, args.batchsize, repeat=False, shuffle=False)
 
