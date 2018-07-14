@@ -2,7 +2,9 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import tensorflow as tf
 from chainer import Chain, cuda
+from tensorflow.contrib import rnn
 
 
 class MyClassifier(Chain):
@@ -67,6 +69,72 @@ class LinearClassifier(MyClassifier, Chain):
     def calculate(self, x):
         h = self.l(x)
         return h
+
+
+class DrugTargetNetwork(MyClassifier, Chain):
+    def __init__(self, prior, dim):
+        super(DrugTargetNetwork, self).__init__(drug_input_size=1000,
+                                                timestep_size=1,
+                                                hidden_size=256,
+                                                layer_num=2,
+                                                class_num=150,
+                                                batchsize=1,
+                                                keep_prob=0.5)
+        self.af = F.relu
+        self.prior = prior
+        self.w1 = tf.Variable(tf.truncated_normal([self.hidden_size, self.class_num], stddev=0.1), dtype=tf.float32)
+        self.bias1 = tf.Variable(tf.constant(0.1, shape=[self.class_num]), dtype=tf.float32)
+        self.w2 = tf.Variable(tf.truncated_normal([self.hidden_size, self.class_num], stddev=0.1), dtype=tf.float32)
+        self.bias2 = tf.Variable(tf.constant(0.1, shape=[self.class_num]), dtype=tf.float32)
+
+    def calculate(self, x):
+        """
+            x[0] is drug inCHI with shape([batchsize, 1, 1000])
+            x[1] is target amino acid sequence with shape[batchsize, 1, 1500]
+        """
+        cells_drug = []
+        for _ in range(self.layer_num):
+            # cell
+            cell = rnn.BasicLSTMCell(num_units=self.hidden_size, forget_bias=1.0, state_is_tuple=True)
+            # 添加 dropout layer, 一般只设置 output_keep_prob
+            cell = rnn.DropoutWrapper(cell=cell, input_keep_prob=1.0, output_keep_prob=self.keep_prob)
+            cells_drug.append(cell)
+        # 调用 MultiRNNCell 来实现多层 LSTM
+        mlstm_cell_drug = rnn.MultiRNNCell(cells_drug, state_is_tuple=True)
+
+        # **步骤5：用全零来初始化state
+        init_state_drug = mlstm_cell_drug.zero_state(self.batch_size, dtype=tf.float32)
+        outputs_drug, state_drug = tf.nn.dynamic_rnn(mlstm_cell_drug, inputs=x[0], initial_state=init_state_drug,
+                                                     time_major=False,
+                                                     scope="drug")
+        # 最后输出
+        h_state_drug = outputs_drug[:, -1, :]  # 或者 h_state = state[-1][1]
+
+        # LSTM1 预测结果
+        y1_pre = tf.nn.softmax(tf.matmul(h_state_drug, self.w1) + self.bias1)
+
+        # LSTM2 for target
+        cells_target = []
+        for _ in range(self.layer_num):
+            cell_target = rnn.BasicLSTMCell(num_units=self.hidden_size, forget_bias=1.0, state_is_tuple=True)
+            cell_target = rnn.DropoutWrapper(cell=cell_target, input_keep_prob=1.0, output_keep_prob=self.keep_prob)
+            cells_target.append(cell_target)
+        mlstm_cell_target = rnn.MultiRNNCell(cells_target, state_is_tuple=True)
+
+        init_state_target = mlstm_cell_target.zero_state(self.batch_size, dtype=tf.float32)
+
+        outputs_target, state_target = tf.nn.dynamic_rnn(mlstm_cell_target, inputs=x[1],
+                                                         initial_state=init_state_target, time_major=False,
+                                                         scope="target")
+
+        h_state_target = outputs_target[:, -1, :]  # 或者 h_state = state[-1][1]
+
+        # LSTM2 预测结果
+        y2_pre = tf.nn.softmax(tf.matmul(h_state_target, self.w2) + self.bias2)
+
+        relationship_calculated = tf.matmul(y1_pre, tf.transpose(y2_pre))
+
+        return relationship_calculated
 
 
 class ThreeLayerPerceptron(MyClassifier, Chain):
