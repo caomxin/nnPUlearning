@@ -86,7 +86,7 @@ def get_drugbank():
     for i in range(known_drugtarget.shape[0]):
         temp_axis1 = []
         temp_pair_axis2 = []
-        temp_pair_axis2.append(drug_data[i])
+        temp_pair_axis2.append(drug_data[known_drugtarget.shape[i][0]])
         temp_pair_axis2.append(target_data[known_drugtarget[i][1]])
         temp_axis1.append(temp_pair_axis2)
         drug_target_combined.append(temp_axis1)

@@ -89,10 +89,10 @@ def process_args():
     assert (args.batchsize > 0)
     assert (args.epoch > 0)
     assert (0 < args.labeled < 30000)
-    if args.dataset == "mnist":
-        assert (0 < args.unlabeled <= 60000)
-    else:
-        assert (0 < args.unlabeled <= 50000)
+    # if args.dataset == "mnist":
+    #     assert (0 < args.unlabeled <= 60000)
+    # else:
+    #     assert (0 < args.unlabeled <= 50000)
     assert (0. <= args.beta)
     assert (0. <= args.gamma <= 1.)
     return args
