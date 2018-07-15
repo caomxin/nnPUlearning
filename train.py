@@ -23,7 +23,7 @@ def process_args():
     parser = argparse.ArgumentParser(
         description='non-negative / unbiased PU learning Chainer implementation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--batchsize', '-b', type=int, default=1,
+    parser.add_argument('--batchsize', '-b', type=int, default=10,
                         help='Mini batch size')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='Zero-origin GPU ID (negative value indicates CPU)')
@@ -80,6 +80,12 @@ def process_args():
         args.batchsize = 500
         args.model = "cnn"
         args.stepsize = 1e-5
+    elif args.preset == 'drugbank':
+        args.labeled = 15360
+        args.unlabeled = 100000 - 15360
+        args.dataset = 'drugbank'
+        args.batchsize = 10
+        args.model = 'dtn'
     assert (args.batchsize > 0)
     assert (args.epoch > 0)
     assert (0 < args.labeled < 30000)

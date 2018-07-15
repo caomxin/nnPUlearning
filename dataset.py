@@ -261,31 +261,7 @@ def load_dataset(dataset_name, n_labeled, n_unlabeled):
         (trainX, trainY), (testX, testY) = get_cifar10()
         trainY, testY = binarize_cifar10_class(trainY, testY)
     elif dataset_name == 'drugbank':
-        print('********** date preparing ************')
-
-        npzfile = np.load("a.npz")
-        print(npzfile.files)
-        # drug
-        drug_data = npzfile['drug_data']
-        print(type(drug_data), " ", drug_data.shape)
-
-        drug_data_train, drug_data_test = split_dataset(drug_data, 0.7)
-
-        # target
-        target_data = npzfile['target_data']
-        print(type(target_data), " ", target_data.shape)
-
-        # given relationship
-        knownRelationship = npzfile['knownRelationship']
-        print(type(knownRelationship), " ", knownRelationship.shape)
-
-        known_drugdtarget = npzfile['known_drugdtarget']
-        print(type(known_drugdtarget), " ", known_drugdtarget.shape)
-
-        # <class 'numpy.ndarray'>   (6386, 1000)
-        # <class 'numpy.ndarray'>   (4154, 1500)
-        # <class 'numpy.ndarray'>   (6386, 4154)
-        # <class 'numpy.ndarray'>   (15360, 2)
+        (trainX, trainY), (testX, testY) = get_drugbank()
     else:
         raise ValueError("dataset name {} is unknown.".format(dataset_name))
     XYtrain, XYtest, prior = make_dataset(((trainX, trainY), (testX, testY)), n_labeled, n_unlabeled)
