@@ -44,6 +44,23 @@ def get_mnist():
     y_te = np.asarray(y[60000:], dtype=np.int32)
     return (x_tr, y_tr), (x_te, y_te)
 
+"""
+
+drug_target_combined = []
+y = []
+for i in range(knownRelationship.shape[0]):
+    for j in range(knownRelationship.shape[1]):
+        temp_x = []
+        temp_x.extend(inchiData[i])
+        temp_x.extend(seqData[j])
+        
+        if knownRelationship[i][j] == 1:
+            y.extend([1])
+        else:,
+            y.extend([0])
+
+"""
+
 
 def get_drugbank():
     print('********** date preparing ************')
@@ -67,7 +84,8 @@ def get_drugbank():
     known_drugdtarget = npzfile['known_drugdtarget']
     print(type(known_drugdtarget), " ", known_drugdtarget.shape)
 
-    x = np.reshape()
+
+    x_tr = np.asanyarray(np.reshape(x, (x[0], 1, 1000, 1500)), dtype=np.float32)
     # <class 'numpy.ndarray'>   (6386, 1000)
     # <class 'numpy.ndarray'>   (4154, 1500)
     # <class 'numpy.ndarray'>   (6386, 4154)
