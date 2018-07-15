@@ -38,7 +38,7 @@ def process_args():
     parser.add_argument('--labeled', '-l', default=15360, type=int,
                         help='# of labeled data')
     # unlabeled data size = #drug * #target - known_relationship = 6386 * 4154 - 15360
-    parser.add_argument('--unlabeled', '-u', default=26512084, type=int,
+    parser.add_argument('--unlabeled', '-u', default=70000-15360, type=int,
                         help='# of unlabeled data')
 
     parser.add_argument('--epoch', '-e', default=6000, type=int,
@@ -82,7 +82,7 @@ def process_args():
         args.stepsize = 1e-5
     elif args.preset == 'drugbank':
         args.labeled = 15360
-        args.unlabeled = 100000 - 15360
+        args.unlabeled = 70000 - 15360
         args.dataset = 'drugbank'
         args.batchsize = 10
         args.model = 'dtn'

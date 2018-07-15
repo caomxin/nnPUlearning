@@ -87,7 +87,9 @@ def get_drugbank():
         temp_pair = []
         temp_pair.append(np.array(drug_data[known_drugtarget[i][0]]))
         temp_pair.append(np.array(target_data[known_drugtarget[i][1]]))
-        temp_pair = (np.array(temp_pair)).astype(np.float32)
+        temp_pair = np.array(temp_pair)
+        temp_pair[0].astype(np.float32)
+        temp_pair[1].astype(np.float32)
         drug_target_combined.append(temp_pair)
 
         # Since we are adding all known pairs (labeled pairs), the crspd y value should be 1
@@ -113,7 +115,9 @@ def get_drugbank():
         temp_pair = []
         temp_pair.append(np.array(drug_data[k]))
         temp_pair.append(np.array(target_data[j]))
-        temp_pair = (np.array(temp_pair)).astype(np.float32)
+        temp_pair = np.array(temp_pair)
+        temp_pair[0].astype(np.float32)
+        temp_pair[1].astype(np.float32)
         drug_target_combined.append(temp_pair)
         y.extend([-1])
         i = i + 1
@@ -130,9 +134,9 @@ def get_drugbank():
     drug_target_combined, y = drug_target_combined[perm], y[perm]
 
     x_tr = (drug_target_combined[:70000])
-    y_tr = (y[:70000]).astype(np.float32)
+    y_tr = (y[:70000]).astype(np.int32)
     x_te = (drug_target_combined[70000:])
-    y_te = (y[70000:]).astype(np.float32)
+    y_te = (y[70000:]).astype(np.int32)
 
     return (x_tr, y_tr), (x_te, y_te)
 
@@ -202,42 +206,43 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
     def make_PU_dataset_from_binary_dataset(x, y, labeled=n_labeled, unlabeled=n_unlabeled):
         labels = np.unique(y)
         positive, negative = labels[1], labels[0]
-        X, Y = np.asarray(x, dtype=np.float32), np.asarray(y, dtype=np.int32)
+        X, Y = x, y
         assert (len(X) == len(Y))
-        perm = np.random.permutation(len(Y))
-        X, Y = X[perm], Y[perm]
-        n_p = (Y == positive).sum()
-        n_lp = labeled
-        n_n = (Y == negative).sum()
-        n_u = unlabeled
+        # perm = np.random.permutation(len(Y))
+        # X, Y = X[perm], Y[perm]
+        n_p = (Y == positive).sum() # 10772
+        n_lp = labeled # 15360
+        n_n = (Y == negative).sum() # 59228
+        n_u = unlabeled # 54640
         if labeled + unlabeled == len(X):
-            n_up = n_p - n_lp
+            n_up = n_p - n_lp # -4625
         elif unlabeled == len(X):
             n_up = n_p
         else:
             raise ValueError("Only support |P|+|U|=|X| or |U|=|X|.")
         prior = float(n_up) / float(n_u)
-        Xlp = X[Y == positive][:n_lp]
-        Xup = np.concatenate((X[Y == positive][n_lp:], Xlp), axis=0)[:n_up]
-        Xun = X[Y == negative]
-        X = np.asarray(np.concatenate((Xlp, Xup, Xun), axis=0), dtype=np.float32)
+        Xlp = X[Y == positive][:n_lp] # 10687, 2
+        Xup = np.concatenate((X[Y == positive][n_lp:], Xlp), axis=0)[:n_up] # 6034, 2
+        Xun = X[Y == negative] # 59303，2
+        X = np.concatenate((Xlp, Xup, Xun), axis=0) # 76034, 2
         print(X.shape)
-        Y = np.asarray(np.concatenate((np.ones(n_lp), -np.ones(n_u))), dtype=np.int32)
+        Y = np.concatenate((np.ones(n_lp), -np.ones(n_u))) # 70000,
         perm = np.random.permutation(len(Y))
         X, Y = X[perm], Y[perm]
         return X, Y, prior
 
+
     def make_PN_dataset_from_binary_dataset(x, y):
         labels = np.unique(y)
         positive, negative = labels[1], labels[0]
-        X, Y = np.asarray(x, dtype=np.float32), np.asarray(y, dtype=np.int32)
-        n_p = (Y == positive).sum()
-        n_n = (Y == negative).sum()
+        X, Y = x, y
+        n_p = (Y == positive).sum() # 4663
+        n_n = (Y == negative).sum() # 25337
         Xp = X[Y == positive][:n_p]
         Xn = X[Y == negative][:n_n]
-        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32)  # (10000,1,28,28)
-        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32)  # (10000,)
-        perm = np.random.permutation(len(Y))  # (10000,)
+        X = np.concatenate((Xp, Xn))  # (30000,2)
+        Y = np.concatenate((np.ones(n_p), -np.ones(n_n)))  # (30000,)
+        perm = np.random.permutation(len(Y))  # (30000,)
         X, Y = X[perm], Y[perm]  # shuffle
         return X, Y
 
