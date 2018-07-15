@@ -73,13 +73,14 @@ class LinearClassifier(MyClassifier, Chain):
 
 class DrugTargetNetwork(MyClassifier, Chain):
     def __init__(self, prior, dim):
-        super(DrugTargetNetwork, self).__init__(drug_input_size=1000,
-                                                timestep_size=1,
-                                                hidden_size=256,
-                                                layer_num=2,
-                                                class_num=150,
-                                                batchsize=1,
-                                                keep_prob=0.5)
+        # self.super(DrugTargetNetwork, self).__init__()
+        self.drug_input_size = 1000,
+        self.timestep_size = 1,
+        self.hidden_size = 256,
+        self.layer_num = 2,
+        self.class_num = 150,
+        self.batchsize = 1,
+        self.keep_prob = 0.5
         self.af = F.relu
         self.prior = prior
         self.w1 = tf.Variable(tf.truncated_normal([self.hidden_size, self.class_num], stddev=0.1), dtype=tf.float32)
