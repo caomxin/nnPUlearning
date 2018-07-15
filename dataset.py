@@ -86,7 +86,7 @@ def get_drugbank():
     for i in range(known_drugtarget.shape[0]):
         temp_axis1 = []
         temp_pair_axis2 = []
-        temp_pair_axis2.append(drug_data[known_drugtarget.shape[i][0]])
+        temp_pair_axis2.append(drug_data[known_drugtarget[i][0]])
         temp_pair_axis2.append(target_data[known_drugtarget[i][1]])
         temp_axis1.append(temp_pair_axis2)
         drug_target_combined.append(temp_axis1)
@@ -98,23 +98,27 @@ def get_drugbank():
     drug_target_combined = np.array(drug_target_combined)
     assert (drug_target_combined.shape[0] == 15360)
     y = np.ones(drug_target_combined.shape[0])
+    print("*** Known drug-target pair preparation done ***")
 
     ## add another 100,000 - 15360 unlabeled samples to the dataset
     drug_target_combined = drug_target_combined.tolist()
     y = y.tolist()
+    # i is used for counting
     i = 0
     while (i < 100000 - 15360):
         j = np.random.randint(4154)
-        if [i, j] in list_of_pairs:
+        k = np.random.randint(6386)
+        if [k, j] in list_of_pairs:
             continue
 
         temp_axis1 = []
         temp_pair_axis2 = []
-        temp_pair_axis2.append(drug_data[i])
+        temp_pair_axis2.append(drug_data[k])
         temp_pair_axis2.append(target_data[j])
         temp_axis1.append(temp_pair_axis2)
         drug_target_combined.append(temp_axis1)
         y.extend([-1])
+        i = i + 1
 
     y = np.array(y)
     drug_target_combined = np.array(drug_target_combined)
