@@ -44,22 +44,14 @@ def get_mnist():
     y_te = np.asarray(y[60000:], dtype=np.int32)
     return (x_tr, y_tr), (x_te, y_te)
 
-"""
 
-drug_target_combined = []
-y = []
-for i in range(knownRelationship.shape[0]):
-    for j in range(knownRelationship.shape[1]):
-        temp_x = []
-        temp_x.extend(inchiData[i])
-        temp_x.extend(seqData[j])
-        
-        if knownRelationship[i][j] == 1:
-            y.extend([1])
-        else:,
-            y.extend([0])
-
-"""
+def binarize_mnist_class(_trainY, _testY):
+    trainY = np.ones(len(_trainY), dtype=np.int32)
+    trainY[_trainY % 2 == 1] = -1
+    testY = np.ones(len(_testY), dtype=np.int32)
+    testY[_testY % 2 == 1] = -1  # 5074 elements set to -1
+    # list(testY).count(-1)
+    return trainY, testY
 
 
 def get_drugbank():
@@ -67,37 +59,80 @@ def get_drugbank():
 
     npzfile = np.load("a.npz")
 
-    # drug
+    # drug <class 'numpy.ndarray'>   (6386, 1000)
     drug_data = npzfile['drug_data']
     print(type(drug_data), " ", drug_data.shape)
 
     drug_data_train, drug_data_test = split_dataset(drug_data, 0.7)
 
-    # target
+    # target <class 'numpy.ndarray'>   (4154, 1500)
     target_data = npzfile['target_data']
     print(type(target_data), " ", target_data.shape)
 
-    # given relationship
+    # known_relationship <class 'numpy.ndarray'>   (6386, 4154)
     knownRelationship = npzfile['knownRelationship']
     print(type(knownRelationship), " ", knownRelationship.shape)
 
-    known_drugdtarget = npzfile['known_drugdtarget']
-    print(type(known_drugdtarget), " ", known_drugdtarget.shape)
+    # known_drug_target_pair <class 'numpy.ndarray'>   (15360, 2)
+    known_drugtarget = npzfile['known_drugdtarget']
+    print(type(known_drugtarget), " ", known_drugtarget.shape)
 
+    list_of_pairs = known_drugtarget.tolist()  # a list of known pairs, length = 15360
 
-    x_tr = np.asanyarray(np.reshape(x, (x[0], 1, 1000, 1500)), dtype=np.float32)
-    # <class 'numpy.ndarray'>   (6386, 1000)
-    # <class 'numpy.ndarray'>   (4154, 1500)
-    # <class 'numpy.ndarray'>   (6386, 4154)
-    # <class 'numpy.ndarray'>   (15360, 2)
+    ### test with 100,000 pairs in which 15360 are positive labeled
+    # drug_target_combined is of shape([15360,1,1000,1500])
+    drug_target_combined = []
 
-def binarize_mnist_class(_trainY, _testY):
-    trainY = np.ones(len(_trainY), dtype=np.int32)
-    trainY[_trainY % 2 == 1] = -1
-    testY = np.ones(len(_testY), dtype=np.int32)
-    testY[_testY % 2 == 1] = -1 # 5074 elements set to -1
-    # list(testY).count(-1)
-    return trainY, testY
+    for i in range(known_drugtarget.shape[0]):
+        temp_axis1 = []
+        temp_pair_axis2 = []
+        temp_pair_axis2.append(drug_data[i])
+        temp_pair_axis2.append(target_data[known_drugtarget[i][1]])
+        temp_axis1.append(temp_pair_axis2)
+        drug_target_combined.append(temp_axis1)
+
+        # Since we are adding all known pairs (labeled pairs), the crspd y value should be 1
+        # alternatively, we can directly initialize y as y = np.ones((15360,))
+        # y.extend([1])
+
+    drug_target_combined = np.array(drug_target_combined)
+    assert (drug_target_combined.shape[0] == 15360)
+    y = np.ones(drug_target_combined.shape[0])
+
+    ## add another 100,000 - 15360 unlabeled samples to the dataset
+    drug_target_combined = drug_target_combined.tolist()
+    y = y.tolist()
+    i = 0
+    while (i < 100000 - 15360):
+        j = np.random.randint(4154)
+        if [i, j] in list_of_pairs:
+            continue
+
+        temp_axis1 = []
+        temp_pair_axis2 = []
+        temp_pair_axis2.append(drug_data[i])
+        temp_pair_axis2.append(target_data[j])
+        temp_axis1.append(temp_pair_axis2)
+        drug_target_combined.append(temp_axis1)
+        y.extend([-1])
+
+    y = np.array(y)
+    drug_target_combined = np.array(drug_target_combined)
+    assert (y.shape[0] == 100000)
+    assert (drug_target_combined.shape == (100000, 1, 1000, 1500))
+
+    # these two parts can be combined together later, but now let's just make it work
+
+    # Shuffle around the drug_target_combined
+    perm = np.random.permutation(len(drug_target_combined))  # should be of length 100000
+    drug_target_combined, y = drug_target_combined[perm], y[perm]
+
+    x_tr = np.asarray(drug_target_combined[:70000], dtype=np.float32)
+    y_tr = np.asarray(y[:70000], dtype=np.int32)
+    x_te = np.asarray(drug_target_combined[70000:], dtype=np.float32)
+    y_te = np.asarray(y[70000:], dtype=np.int32)
+
+    return (x_tr, y_tr), (x_te, y_te)
 
 
 def unpickle(file):
@@ -112,7 +147,6 @@ def conv_data2image(data):
 
 
 def get_cifar10(path="./mldata"):
-
     if not os.path.isdir(path):
         os.mkdir(path)
     url = "http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
@@ -127,9 +161,9 @@ def get_cifar10(path="./mldata"):
             f.extractall(path=path)
         urllib.request.urlcleanup()
 
-    x_tr = np.empty((0,32*32*3))
+    x_tr = np.empty((0, 32 * 32 * 3))
     y_tr = np.empty(1)
-    for i in range(1,6):
+    for i in range(1, 6):
         fname = os.path.join(folder, "%s%d" % ("data_batch_", i))
         data_dict = unpickle(fname)
         if i == 1:
@@ -156,9 +190,9 @@ def get_cifar10(path="./mldata"):
 
 def binarize_cifar10_class(_trainY, _testY):
     trainY = np.ones(len(_trainY), dtype=np.int32)
-    trainY[(_trainY==2)|(_trainY==3)|(_trainY==4)|(_trainY==5)|(_trainY==6)|(_trainY==7)] = -1
+    trainY[(_trainY == 2) | (_trainY == 3) | (_trainY == 4) | (_trainY == 5) | (_trainY == 6) | (_trainY == 7)] = -1
     testY = np.ones(len(_testY), dtype=np.int32)
-    testY[(_testY==2)|(_testY==3)|(_testY==4)|(_testY==5)|(_testY==6)|(_testY==7)] = -1
+    testY[(_testY == 2) | (_testY == 3) | (_testY == 4) | (_testY == 5) | (_testY == 6) | (_testY == 7)] = -1
     return trainY, testY
 
 
@@ -167,7 +201,7 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
         labels = np.unique(y)
         positive, negative = labels[1], labels[0]
         X, Y = np.asarray(x, dtype=np.float32), np.asarray(y, dtype=np.int32)
-        assert(len(X) == len(Y))
+        assert (len(X) == len(Y))
         perm = np.random.permutation(len(Y))
         X, Y = X[perm], Y[perm]
         n_p = (Y == positive).sum()
@@ -199,11 +233,12 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
         n_n = (Y == negative).sum()
         Xp = X[Y == positive][:n_p]
         Xn = X[Y == negative][:n_n]
-        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32) #(10000,1,28,28)
-        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32) # (10000,)
-        perm = np.random.permutation(len(Y)) # (10000,)
-        X, Y = X[perm], Y[perm] # shuffle
+        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32)  # (10000,1,28,28)
+        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32)  # (10000,)
+        perm = np.random.permutation(len(Y))  # (10000,)
+        X, Y = X[perm], Y[perm]  # shuffle
         return X, Y
+
     # dataset consists of (trainX, trainY) and (testX, testY) the following line break them up from the argument
     (_trainX, _trainY), (_testX, _testY) = dataset
 
