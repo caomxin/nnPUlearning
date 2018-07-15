@@ -80,23 +80,22 @@ def get_drugbank():
     list_of_pairs = known_drugtarget.tolist()  # a list of known pairs, length = 15360
 
     ### test with 100,000 pairs in which 15360 are positive labeled
-    # drug_target_combined is of shape([15360,1,1000,1500])
+    # drug_target_combined is of shape([15360,2])
     drug_target_combined = []
 
     for i in range(known_drugtarget.shape[0]):
-        temp_axis1 = []
-        temp_pair_axis2 = []
-        temp_pair_axis2.append(drug_data[known_drugtarget[i][0]])
-        temp_pair_axis2.append(target_data[known_drugtarget[i][1]])
-        temp_axis1.append(temp_pair_axis2)
-        drug_target_combined.append(temp_axis1)
+        temp_pair = []
+        temp_pair.append(np.array(drug_data[known_drugtarget[i][0]]))
+        temp_pair.append(np.array(target_data[known_drugtarget[i][1]]))
+        temp_pair = np.array(temp_pair)
+        drug_target_combined.append(temp_pair)
 
         # Since we are adding all known pairs (labeled pairs), the crspd y value should be 1
         # alternatively, we can directly initialize y as y = np.ones((15360,))
         # y.extend([1])
 
     drug_target_combined = np.array(drug_target_combined)
-    assert (drug_target_combined.shape[0] == 15360)
+    assert (drug_target_combined.shape == (15360, 2))
     y = np.ones(drug_target_combined.shape[0])
     print("*** Known drug-target pair preparation done ***")
 
@@ -111,19 +110,18 @@ def get_drugbank():
         if [k, j] in list_of_pairs:
             continue
 
-        temp_axis1 = []
-        temp_pair_axis2 = []
-        temp_pair_axis2.append(drug_data[k])
-        temp_pair_axis2.append(target_data[j])
-        temp_axis1.append(temp_pair_axis2)
-        drug_target_combined.append(temp_axis1)
+        temp_pair = []
+        temp_pair.append(np.array(drug_data[k]))
+        temp_pair.append(np.array(target_data[j]))
+        temp_pair = np.array(temp_pair)
+        drug_target_combined.append(temp_pair)
         y.extend([-1])
         i = i + 1
 
     y = np.array(y)
     drug_target_combined = np.array(drug_target_combined)
     assert (y.shape[0] == 100000)
-    assert (drug_target_combined.shape == (100000, 1, 1000, 1500))
+    assert (drug_target_combined.shape == (100000, 2))
 
     # these two parts can be combined together later, but now let's just make it work
 
