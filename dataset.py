@@ -87,7 +87,7 @@ def get_drugbank():
         temp_pair = []
         temp_pair.append(np.array(drug_data[known_drugtarget[i][0]]))
         temp_pair.append(np.array(target_data[known_drugtarget[i][1]]))
-        temp_pair = np.array(temp_pair)
+        temp_pair = (np.array(temp_pair)).astype(np.float32)
         drug_target_combined.append(temp_pair)
 
         # Since we are adding all known pairs (labeled pairs), the crspd y value should be 1
@@ -113,7 +113,7 @@ def get_drugbank():
         temp_pair = []
         temp_pair.append(np.array(drug_data[k]))
         temp_pair.append(np.array(target_data[j]))
-        temp_pair = np.array(temp_pair)
+        temp_pair = (np.array(temp_pair)).astype(np.float32)
         drug_target_combined.append(temp_pair)
         y.extend([-1])
         i = i + 1
@@ -129,10 +129,10 @@ def get_drugbank():
     perm = np.random.permutation(len(drug_target_combined))  # should be of length 100000
     drug_target_combined, y = drug_target_combined[perm], y[perm]
 
-    x_tr = np.asarray(drug_target_combined[:70000], dtype=np.float32)
-    y_tr = np.asarray(y[:70000], dtype=np.int32)
-    x_te = np.asarray(drug_target_combined[70000:], dtype=np.float32)
-    y_te = np.asarray(y[70000:], dtype=np.int32)
+    x_tr = (drug_target_combined[:70000])
+    y_tr = (y[:70000]).astype(np.float32)
+    x_te = (drug_target_combined[70000:])
+    y_te = (y[70000:]).astype(np.float32)
 
     return (x_tr, y_tr), (x_te, y_te)
 
