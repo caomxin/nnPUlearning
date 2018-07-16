@@ -85,11 +85,10 @@ def get_drugbank():
 
     for i in range(known_drugtarget.shape[0]):
         temp_pair = []
-        temp_pair.append(np.array(drug_data[known_drugtarget[i][0]]))
-        temp_pair.append(np.array(target_data[known_drugtarget[i][1]]))
+        temp_pair.extend(np.array(drug_data[known_drugtarget[i][0]]))
+        temp_pair.extend(np.array(target_data[known_drugtarget[i][1]]))
         temp_pair = np.array(temp_pair)
-        temp_pair[0].astype(np.float32)
-        temp_pair[1].astype(np.float32)
+        temp_pair.astype(np.float32)
         drug_target_combined.append(temp_pair)
 
         # Since we are adding all known pairs (labeled pairs), the crspd y value should be 1
@@ -97,8 +96,8 @@ def get_drugbank():
         # y.extend([1])
 
     drug_target_combined = np.array(drug_target_combined)
-    assert (drug_target_combined.shape == (15360, 2))
-    y = np.ones(drug_target_combined.shape[0])
+    assert (drug_target_combined.shape == (15360, 2500))
+    y = np.ones(len(drug_target_combined))
     print("*** Known drug-target pair preparation done ***")
 
     ## add another 100,000 - 15360 unlabeled samples to the dataset
@@ -113,11 +112,10 @@ def get_drugbank():
             continue
 
         temp_pair = []
-        temp_pair.append(np.array(drug_data[k]))
-        temp_pair.append(np.array(target_data[j]))
+        temp_pair.extend(np.array(drug_data[k]))
+        temp_pair.extend(np.array(target_data[j]))
         temp_pair = np.array(temp_pair)
-        temp_pair[0].astype(np.float32)
-        temp_pair[1].astype(np.float32)
+        temp_pair.astype(np.float32)
         drug_target_combined.append(temp_pair)
         y.extend([-1])
         i = i + 1
@@ -125,7 +123,7 @@ def get_drugbank():
     y = np.array(y)
     drug_target_combined = np.array(drug_target_combined)
     assert (y.shape[0] == 100000)
-    assert (drug_target_combined.shape == (100000, 2))
+    assert (drug_target_combined.shape == (100000, 2500))
 
     # these two parts can be combined together later, but now let's just make it work
 
@@ -133,9 +131,9 @@ def get_drugbank():
     perm = np.random.permutation(len(drug_target_combined))  # should be of length 100000
     drug_target_combined, y = drug_target_combined[perm], y[perm]
 
-    x_tr = (drug_target_combined[:70000])
+    x_tr = np.asarray(drug_target_combined[:70000], dtype=np.float32)
     y_tr = (y[:70000]).astype(np.int32)
-    x_te = (drug_target_combined[70000:])
+    x_te = np.asarray(drug_target_combined[70000:], dtype=np.float32)
     y_te = (y[70000:]).astype(np.int32)
 
     return (x_tr, y_tr), (x_te, y_te)
@@ -206,7 +204,7 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
     def make_PU_dataset_from_binary_dataset(x, y, labeled=n_labeled, unlabeled=n_unlabeled):
         labels = np.unique(y)
         positive, negative = labels[1], labels[0]
-        X, Y = x, y
+        X, Y = np.asarray(x, dtype=np.float32), np.asarray(y, dtype=np.int32)
         assert (len(X) == len(Y))
         # perm = np.random.permutation(len(Y))
         # X, Y = X[perm], Y[perm]
@@ -224,9 +222,9 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
         Xlp = X[Y == positive][:n_lp] # 10687, 2
         Xup = np.concatenate((X[Y == positive][n_lp:], Xlp), axis=0)[:n_up] # 6034, 2
         Xun = X[Y == negative] # 59303，2
-        X = np.concatenate((Xlp, Xup, Xun), axis=0) # 76034, 2
+        X = np.asarray(np.concatenate((Xlp, Xup, Xun), axis=0), dtype=np.float32)
         print(X.shape)
-        Y = np.concatenate((np.ones(n_lp), -np.ones(n_u))) # 70000,
+        Y = np.asarray(np.concatenate((np.ones(n_lp), -np.ones(n_u))), dtype=np.int32)
         perm = np.random.permutation(len(Y))
         X, Y = X[perm], Y[perm]
         return X, Y, prior
@@ -235,13 +233,13 @@ def make_dataset(dataset, n_labeled, n_unlabeled):
     def make_PN_dataset_from_binary_dataset(x, y):
         labels = np.unique(y)
         positive, negative = labels[1], labels[0]
-        X, Y = x, y
+        X, Y = np.asarray(x, dtype=np.float32), np.asarray(y, dtype=np.int32)
         n_p = (Y == positive).sum() # 4663
         n_n = (Y == negative).sum() # 25337
         Xp = X[Y == positive][:n_p]
         Xn = X[Y == negative][:n_n]
-        X = np.concatenate((Xp, Xn))  # (30000,2)
-        Y = np.concatenate((np.ones(n_p), -np.ones(n_n)))  # (30000,)
+        X = np.asarray(np.concatenate((Xp, Xn)), dtype=np.float32)  # (30000,)
+        Y = np.asarray(np.concatenate((np.ones(n_p), -np.ones(n_n))), dtype=np.int32)  # (30000,)
         perm = np.random.permutation(len(Y))  # (30000,)
         X, Y = X[perm], Y[perm]  # shuffle
         return X, Y
