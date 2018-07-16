@@ -71,7 +71,7 @@ class LinearClassifier(MyClassifier, Chain):
 
 class DrugTargetNetwork(MyClassifier, Chain):
     def __init__(self, prior, dim):
-        self.super(DrugTargetNetwork, self).__init__(
+        super(DrugTargetNetwork, self).__init__(
             l1_1=L.LSTM(1000, 256),
             l1_2=L.LSTM(256, 150),
             l2_1=L.LSTM(1500, 256),
